@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-multierror"
+	"istio.io/istio/pkg/spiffe"
 )
 
 const (
@@ -16,9 +17,15 @@ const (
 )
 
 var (
-	istioCluster14 = "addon116"
-	istioCluster16 = "asm-test"
+	istioCluster14 = "gke_linggg-istio-002_us-central1-c_e2eaddon14"
+	istioCluster16 = "gke_linggg-istio-002_us-central1-c_addon16"
+	trustDomain = "cluster.local"
 )
+
+// newResp creates http response with prefix and SpiffeID.
+func newResp(prefix , ns, sa string) string {
+	return prefix + spiffe.Identity{trustDomain, ns, sa}.String()
+}
 
 func setup(t *testing.T, name string) func() {
 	createPolicy14 := exec.Command("kubectl", "apply", "-f", fmt.Sprintf("testdata/%s-input.yaml", name), "--context", istioCluster14)
@@ -178,7 +185,7 @@ func TestE2E(t *testing.T) {
 				},
 				{
 					from: "sleep.bar", to: "httpbin.bar:8000", path: "/headers", jwt: true,
-					want: []string{"By=spiffe://ymzhu-istio.svc.id.goog/ns/bar/sa/httpbin", "URI=spiffe://ymzhu-istio.svc.id.goog/ns/bar/sa/sleep"},
+					want: []string{newResp("By=","bar", "httpbin"), newResp("URI=","bar", "sleep")},
 				},
 				{
 					from: "sleep.naked", to: "httpbin.bar:8000", path: "/headers",
@@ -345,7 +352,7 @@ func TestE2E(t *testing.T) {
 			verify: []verifyCmd{
 				{
 					from: "sleep.foo", to: "httpbin.foo:8000", path: "/headers",
-					want: []string{"By=spiffe://ymzhu-istio.svc.id.goog/ns/foo/sa/httpbin", "URI=spiffe://ymzhu-istio.svc.id.goog/ns/foo/sa/sleep"},
+					want: []string{newResp("By=","foo", "httpbin"), newResp("URI=","foo", "sleep")},
 				},
 				{
 					from: "sleep.foo", to: "helloworld.foo:5000", path: "/hello",
@@ -358,7 +365,7 @@ func TestE2E(t *testing.T) {
 				{
 					from: "sleep.naked", to: "httpbin.bar:8000", path: "/headers",
 					want:    []string{"HTTP/1.1 200 OK"},
-					notWant: []string{"By=spiffe://ymzhu-istio.svc.id.goog/ns/foo/sa/httpbin"},
+					notWant: []string{newResp("By=","foo", "httpbin")},
 				},
 				{
 					from: "sleep.naked", to: "helloworld.foo:5000", path: "/hello",
@@ -371,7 +378,7 @@ func TestE2E(t *testing.T) {
 			verify: []verifyCmd{
 				{
 					from: "sleep.bar", to: "httpbin.bar:8000", path: "/headers",
-					want: []string{"By=spiffe://ymzhu-istio.svc.id.goog/ns/bar/sa/httpbin", "URI=spiffe://ymzhu-istio.svc.id.goog/ns/bar/sa/sleep"},
+					want: []string{newResp("By=","bar", "httpbin"), newResp("URI=","bar", "sleep")},
 				},
 				{
 					from: "sleep.bar", to: "helloworld.bar:5000", path: "/hello",
@@ -384,7 +391,7 @@ func TestE2E(t *testing.T) {
 				{
 					from: "sleep.naked", to: "httpbin.foo:8000", path: "/headers",
 					want:    []string{"HTTP/1.1 200 OK"},
-					notWant: []string{"By=spiffe://ymzhu-istio.svc.id.goog/ns/foo/sa/httpbin"},
+					notWant: []string{newResp("By=","foo", "httpbin")},
 				},
 				{
 					from: "sleep.naked", to: "helloworld.bar:5000", path: "/hello",
@@ -397,19 +404,21 @@ func TestE2E(t *testing.T) {
 			verify: []verifyCmd{
 				{
 					from: "sleep.foo", to: "httpbin.foo:8000", path: "/headers",
-					want: []string{"By=spiffe://ymzhu-istio.svc.id.goog/ns/foo/sa/httpbin", "URI=spiffe://ymzhu-istio.svc.id.goog/ns/foo/sa/sleep"},
+					want: []string{newResp("By=","foo", "httpbin"), newResp("URI=","foo", "sleep")},
+
 				},
 				{
 					from: "sleep.foo", to: "httpbin.bar:8000", path: "/headers",
-					want: []string{"By=spiffe://ymzhu-istio.svc.id.goog/ns/bar/sa/httpbin", "URI=spiffe://ymzhu-istio.svc.id.goog/ns/foo/sa/sleep"},
+					want: []string{newResp("By=","bar", "httpbin"), newResp("URI=","foo", "sleep")},
+
 				},
 				{
 					from: "sleep.bar", to: "httpbin.bar:8000", path: "/headers",
-					want: []string{"By=spiffe://ymzhu-istio.svc.id.goog/ns/bar/sa/httpbin", "URI=spiffe://ymzhu-istio.svc.id.goog/ns/bar/sa/sleep"},
+					want: []string{newResp("By=","bar", "httpbin"), newResp("URI=","bar", "sleep")},
 				},
 				{
 					from: "sleep.bar", to: "httpbin.foo:8000", path: "/headers",
-					want: []string{"By=spiffe://ymzhu-istio.svc.id.goog/ns/foo/sa/httpbin", "URI=spiffe://ymzhu-istio.svc.id.goog/ns/bar/sa/sleep"},
+					want: []string{newResp("By=","foo", "httpbin"), newResp("URI=","bar", "sleep")},
 				},
 				{
 					from: "sleep.naked", to: "httpbin.foo:8000", path: "/headers",
@@ -426,19 +435,21 @@ func TestE2E(t *testing.T) {
 			verify: []verifyCmd{
 				{
 					from: "sleep.foo", to: "httpbin.foo:8000", path: "/headers",
-					want: []string{"By=spiffe://ymzhu-istio.svc.id.goog/ns/foo/sa/httpbin", "URI=spiffe://ymzhu-istio.svc.id.goog/ns/foo/sa/sleep"},
+					want: []string{newResp("By=","foo", "httpbin"), newResp("URI=","foo", "sleep")},
 				},
 				{
 					from: "sleep.foo", to: "httpbin.bar:8000", path: "/headers",
-					want: []string{"By=spiffe://ymzhu-istio.svc.id.goog/ns/bar/sa/httpbin", "URI=spiffe://ymzhu-istio.svc.id.goog/ns/foo/sa/sleep"},
+					want: []string{newResp("By=","bar", "httpbin"), newResp("URI=","foo", "sleep")},
 				},
 				{
 					from: "sleep.bar", to: "httpbin.bar:8000", path: "/headers",
-					want: []string{"By=spiffe://ymzhu-istio.svc.id.goog/ns/bar/sa/httpbin", "URI=spiffe://ymzhu-istio.svc.id.goog/ns/bar/sa/sleep"},
+					want: []string{newResp("By=","bar", "httpbin"), newResp("URI=","bar", "sleep")},
+
 				},
 				{
 					from: "sleep.bar", to: "httpbin.foo:8000", path: "/headers",
-					want: []string{"By=spiffe://ymzhu-istio.svc.id.goog/ns/foo/sa/httpbin", "URI=spiffe://ymzhu-istio.svc.id.goog/ns/bar/sa/sleep"},
+					want: []string{newResp("By=","foo", "httpbin"), newResp("URI=","bar", "sleep")},
+
 				},
 				{
 					from: "sleep.naked", to: "httpbin.foo:8000", path: "/headers",
@@ -447,7 +458,51 @@ func TestE2E(t *testing.T) {
 				{
 					from: "sleep.naked", to: "httpbin.bar:8000", path: "/headers",
 					want:    []string{"HTTP/1.1 200 OK"},
-					notWant: []string{"By=spiffe://ymzhu-istio.svc.id.goog/ns/foo/sa/httpbin"},
+					notWant: []string{newResp("By=","foo", "httpbin")},
+				},
+			},
+		},
+		{
+			name: "mtls-port",
+			verify: []verifyCmd{
+				{
+					from: "sleep.foo", to: "httpbin.foo:9000", path: "/headers",
+					want: []string{newResp("By=","foo", "httpbin"), newResp("URI=","foo", "sleep")},
+				},
+				{
+					from: "sleep.foo", to: "httpbin.bar:9000", path: "/headers",
+					want: []string{newResp("By=","bar", "httpbin"), newResp("URI=","foo", "sleep")},
+				},
+				{
+					from: "sleep.bar", to: "httpbin.bar:9000", path: "/headers",
+					want: []string{newResp("By=","bar", "httpbin"), newResp("URI=","bar", "sleep")},
+				},
+				{
+					from: "sleep.bar", to: "httpbin.foo:9000", path: "/headers",
+					want: []string{newResp("By=","foo", "httpbin"), newResp("URI=","bar", "sleep")},
+				},
+				{
+					from: "sleep.naked", to: "httpbin.foo:9000", path: "/headers",
+					want: []string{"Connection reset by peer"},
+				},
+				{
+					from: "sleep.naked", to: "httpbin.bar:9000", path: "/headers",
+					want:    []string{"HTTP/1.1 200 OK"},
+					notWant: []string{newResp("By=","foo", "httpbin")},
+
+				},
+			},
+		},
+		{
+			name: "jwt-port",
+			verify: []verifyCmd{
+				{
+					from: "sleep.foo", to: "httpbin.foo:9000", path: "/headers",
+					want: []string{"RBAC: access denied"},
+				},
+				{
+					from: "sleep.foo", to: "httpbin.foo:9000", path: "/headers", jwt: true,
+					want: []string{"HTTP/1.1 200 OK"},
 				},
 			},
 		},
