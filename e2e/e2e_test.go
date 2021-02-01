@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-multierror"
-	"istio.io/istio/pkg/spiffe"
 )
 
 const (
@@ -19,12 +18,12 @@ const (
 var (
 	istioCluster14 = "gke_linggg-istio-002_us-central1-c_e2eaddon14"
 	istioCluster16 = "gke_linggg-istio-002_us-central1-c_addon16"
-	trustDomain = "cluster.local"
+	trustDomain    = "cluster.local"
 )
 
-// newResp creates http response with prefix and SpiffeID.
-func newResp(prefix , ns, sa string) string {
-	return prefix + spiffe.Identity{trustDomain, ns, sa}.String()
+// newIdentity creates http response with prefix and SpiffeID.
+func newIdentity(prefix, ns, sa string) string {
+	return prefix + "spiffe://" + trustDomain + "/ns/" + ns + "/sa/" + sa
 }
 
 func setup(t *testing.T, name string) func() {
@@ -185,7 +184,7 @@ func TestE2E(t *testing.T) {
 				},
 				{
 					from: "sleep.bar", to: "httpbin.bar:8000", path: "/headers", jwt: true,
-					want: []string{newResp("By=","bar", "httpbin"), newResp("URI=","bar", "sleep")},
+					want: []string{newIdentity("By=","bar", "httpbin"), newIdentity("URI=","bar", "sleep")},
 				},
 				{
 					from: "sleep.naked", to: "httpbin.bar:8000", path: "/headers",
@@ -264,6 +263,19 @@ func TestE2E(t *testing.T) {
 				},
 				{
 					from: "sleep.bar", to: "httpbin.bar:8000", path: "/headers", jwt: true,
+					want: []string{"HTTP/1.1 200 OK"},
+				},
+			},
+		},
+		{
+			name: "jwt-port",
+			verify: []verifyCmd{
+				{
+					from: "sleep.foo", to: "httpbin.foo:80", path: "/headers",
+					want: []string{"RBAC: access denied"},
+				},
+				{
+					from: "sleep.foo", to: "httpbin.foo:80", path: "/headers", jwt: true,
 					want: []string{"HTTP/1.1 200 OK"},
 				},
 			},
@@ -352,7 +364,7 @@ func TestE2E(t *testing.T) {
 			verify: []verifyCmd{
 				{
 					from: "sleep.foo", to: "httpbin.foo:8000", path: "/headers",
-					want: []string{newResp("By=","foo", "httpbin"), newResp("URI=","foo", "sleep")},
+					want: []string{newIdentity("By=","foo", "httpbin"), newIdentity("URI=","foo", "sleep")},
 				},
 				{
 					from: "sleep.foo", to: "helloworld.foo:5000", path: "/hello",
@@ -365,7 +377,7 @@ func TestE2E(t *testing.T) {
 				{
 					from: "sleep.naked", to: "httpbin.bar:8000", path: "/headers",
 					want:    []string{"HTTP/1.1 200 OK"},
-					notWant: []string{newResp("By=","foo", "httpbin")},
+					notWant: []string{newIdentity("By=","foo", "httpbin")},
 				},
 				{
 					from: "sleep.naked", to: "helloworld.foo:5000", path: "/hello",
@@ -378,7 +390,7 @@ func TestE2E(t *testing.T) {
 			verify: []verifyCmd{
 				{
 					from: "sleep.bar", to: "httpbin.bar:8000", path: "/headers",
-					want: []string{newResp("By=","bar", "httpbin"), newResp("URI=","bar", "sleep")},
+					want: []string{newIdentity("By=","bar", "httpbin"), newIdentity("URI=","bar", "sleep")},
 				},
 				{
 					from: "sleep.bar", to: "helloworld.bar:5000", path: "/hello",
@@ -391,7 +403,7 @@ func TestE2E(t *testing.T) {
 				{
 					from: "sleep.naked", to: "httpbin.foo:8000", path: "/headers",
 					want:    []string{"HTTP/1.1 200 OK"},
-					notWant: []string{newResp("By=","foo", "httpbin")},
+					notWant: []string{newIdentity("By=","foo", "httpbin")},
 				},
 				{
 					from: "sleep.naked", to: "helloworld.bar:5000", path: "/hello",
@@ -404,21 +416,21 @@ func TestE2E(t *testing.T) {
 			verify: []verifyCmd{
 				{
 					from: "sleep.foo", to: "httpbin.foo:8000", path: "/headers",
-					want: []string{newResp("By=","foo", "httpbin"), newResp("URI=","foo", "sleep")},
+					want: []string{newIdentity("By=","foo", "httpbin"), newIdentity("URI=","foo", "sleep")},
 
 				},
 				{
 					from: "sleep.foo", to: "httpbin.bar:8000", path: "/headers",
-					want: []string{newResp("By=","bar", "httpbin"), newResp("URI=","foo", "sleep")},
+					want: []string{newIdentity("By=","bar", "httpbin"), newIdentity("URI=","foo", "sleep")},
 
 				},
 				{
 					from: "sleep.bar", to: "httpbin.bar:8000", path: "/headers",
-					want: []string{newResp("By=","bar", "httpbin"), newResp("URI=","bar", "sleep")},
+					want: []string{newIdentity("By=","bar", "httpbin"), newIdentity("URI=","bar", "sleep")},
 				},
 				{
 					from: "sleep.bar", to: "httpbin.foo:8000", path: "/headers",
-					want: []string{newResp("By=","foo", "httpbin"), newResp("URI=","bar", "sleep")},
+					want: []string{newIdentity("By=","foo", "httpbin"), newIdentity("URI=","bar", "sleep")},
 				},
 				{
 					from: "sleep.naked", to: "httpbin.foo:8000", path: "/headers",
@@ -435,20 +447,20 @@ func TestE2E(t *testing.T) {
 			verify: []verifyCmd{
 				{
 					from: "sleep.foo", to: "httpbin.foo:8000", path: "/headers",
-					want: []string{newResp("By=","foo", "httpbin"), newResp("URI=","foo", "sleep")},
+					want: []string{newIdentity("By=","foo", "httpbin"), newIdentity("URI=","foo", "sleep")},
 				},
 				{
 					from: "sleep.foo", to: "httpbin.bar:8000", path: "/headers",
-					want: []string{newResp("By=","bar", "httpbin"), newResp("URI=","foo", "sleep")},
+					want: []string{newIdentity("By=","bar", "httpbin"), newIdentity("URI=","foo", "sleep")},
 				},
 				{
 					from: "sleep.bar", to: "httpbin.bar:8000", path: "/headers",
-					want: []string{newResp("By=","bar", "httpbin"), newResp("URI=","bar", "sleep")},
+					want: []string{newIdentity("By=","bar", "httpbin"), newIdentity("URI=","bar", "sleep")},
 
 				},
 				{
 					from: "sleep.bar", to: "httpbin.foo:8000", path: "/headers",
-					want: []string{newResp("By=","foo", "httpbin"), newResp("URI=","bar", "sleep")},
+					want: []string{newIdentity("By=","foo", "httpbin"), newIdentity("URI=","bar", "sleep")},
 
 				},
 				{
@@ -458,7 +470,7 @@ func TestE2E(t *testing.T) {
 				{
 					from: "sleep.naked", to: "httpbin.bar:8000", path: "/headers",
 					want:    []string{"HTTP/1.1 200 OK"},
-					notWant: []string{newResp("By=","foo", "httpbin")},
+					notWant: []string{newIdentity("By=","foo", "httpbin")},
 				},
 			},
 		},
@@ -466,43 +478,29 @@ func TestE2E(t *testing.T) {
 			name: "mtls-port",
 			verify: []verifyCmd{
 				{
-					from: "sleep.foo", to: "httpbin.foo:9000", path: "/headers",
-					want: []string{newResp("By=","foo", "httpbin"), newResp("URI=","foo", "sleep")},
+					from: "sleep.foo", to: "httpbin.foo:80", path: "/headers",
+					want: []string{newIdentity("By=", "foo", "httpbin"), newIdentity("URI=", "foo", "sleep")},
 				},
 				{
-					from: "sleep.foo", to: "httpbin.bar:9000", path: "/headers",
-					want: []string{newResp("By=","bar", "httpbin"), newResp("URI=","foo", "sleep")},
+					from: "sleep.foo", to: "httpbin.bar:80", path: "/headers",
+					want: []string{newIdentity("By=", "bar", "httpbin"), newIdentity("URI=", "foo", "sleep")},
 				},
 				{
-					from: "sleep.bar", to: "httpbin.bar:9000", path: "/headers",
-					want: []string{newResp("By=","bar", "httpbin"), newResp("URI=","bar", "sleep")},
+					from: "sleep.bar", to: "httpbin.bar:80", path: "/headers",
+					want: []string{newIdentity("By=", "bar", "httpbin"), newIdentity("URI=", "bar", "sleep")},
 				},
 				{
-					from: "sleep.bar", to: "httpbin.foo:9000", path: "/headers",
-					want: []string{newResp("By=","foo", "httpbin"), newResp("URI=","bar", "sleep")},
+					from: "sleep.bar", to: "httpbin.foo:80", path: "/headers",
+					want: []string{newIdentity("By=", "foo", "httpbin"), newIdentity("URI=", "bar", "sleep")},
 				},
 				{
-					from: "sleep.naked", to: "httpbin.foo:9000", path: "/headers",
+					from: "sleep.naked", to: "httpbin.foo:80", path: "/headers",
 					want: []string{"Connection reset by peer"},
 				},
 				{
-					from: "sleep.naked", to: "httpbin.bar:9000", path: "/headers",
+					from: "sleep.naked", to: "httpbin.bar:80", path: "/headers",
 					want:    []string{"HTTP/1.1 200 OK"},
-					notWant: []string{newResp("By=","foo", "httpbin")},
-
-				},
-			},
-		},
-		{
-			name: "jwt-port",
-			verify: []verifyCmd{
-				{
-					from: "sleep.foo", to: "httpbin.foo:9000", path: "/headers",
-					want: []string{"RBAC: access denied"},
-				},
-				{
-					from: "sleep.foo", to: "httpbin.foo:9000", path: "/headers", jwt: true,
-					want: []string{"HTTP/1.1 200 OK"},
+					notWant: []string{newIdentity("By=", "bar", "httpbin"), newIdentity("By=", "foo", "httpbin")},
 				},
 			},
 		},

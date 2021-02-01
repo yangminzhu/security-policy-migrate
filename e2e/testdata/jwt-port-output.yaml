@@ -2,25 +2,7 @@ apiVersion: security.istio.io/v1beta1
 kind: PeerAuthentication
 metadata:
   annotations:
-    security.istio.io/alpha-policy-convert: converted from alpha authentication policy
-      bar/httpbin, service httpbin
-  creationTimestamp: null
-  name: httpbin-httpbin
-  namespace: bar
-spec:
-  mtls:
-    mode: STRICT
-  selector:
-    matchLabels:
-      app: httpbin
-
----
-apiVersion: security.istio.io/v1beta1
-kind: PeerAuthentication
-metadata:
-  annotations:
-    security.istio.io/alpha-policy-convert: converted from alpha authentication policy
-      foo/jwt-port, service httpbin
+    security.istio.io/alpha-policy-convert: converted from alpha authentication policy foo/jwt-port, service httpbin
   creationTimestamp: null
   name: jwt-port-httpbin
   namespace: foo
@@ -37,8 +19,7 @@ apiVersion: security.istio.io/v1beta1
 kind: RequestAuthentication
 metadata:
   annotations:
-    security.istio.io/alpha-policy-convert: converted from alpha authentication policy
-      foo/jwt-port, service httpbin
+    security.istio.io/alpha-policy-convert: converted from alpha authentication policy foo/jwt-port, service httpbin
   creationTimestamp: null
   name: jwt-port-httpbin
   namespace: foo
@@ -55,8 +36,7 @@ apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
   annotations:
-    security.istio.io/alpha-policy-convert: converted from alpha authentication policy
-      foo/jwt-port, service httpbin
+    security.istio.io/alpha-policy-convert: converted from alpha authentication policy foo/jwt-port, service httpbin
   creationTimestamp: null
   name: jwt-port-httpbin
   namespace: foo
@@ -74,19 +54,5 @@ spec:
   selector:
     matchLabels:
       app: httpbin
-
----
-apiVersion: security.istio.io/v1beta1
-kind: PeerAuthentication
-metadata:
-  annotations:
-    security.istio.io/alpha-policy-convert: converted from alpha authentication policy
-      /default, mesh level policy
-  creationTimestamp: null
-  name: default
-  namespace: istio-system
-spec:
-  mtls:
-    mode: STRICT
 
 ---

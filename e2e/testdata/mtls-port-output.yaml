@@ -2,8 +2,7 @@ apiVersion: security.istio.io/v1beta1
 kind: PeerAuthentication
 metadata:
   annotations:
-    security.istio.io/alpha-policy-convert: converted from alpha authentication policy
-      bar/bar-permissive, service httpbin
+    security.istio.io/alpha-policy-convert: converted from alpha authentication policy bar/bar-permissive, service httpbin
   creationTimestamp: null
   name: bar-permissive-httpbin
   namespace: bar
@@ -20,8 +19,7 @@ apiVersion: security.istio.io/v1beta1
 kind: PeerAuthentication
 metadata:
   annotations:
-    security.istio.io/alpha-policy-convert: converted from alpha authentication policy
-      foo/foo-strict, service httpbin
+    security.istio.io/alpha-policy-convert: converted from alpha authentication policy foo/foo-strict, service httpbin
   creationTimestamp: null
   name: foo-strict-httpbin
   namespace: foo
